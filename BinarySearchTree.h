@@ -1,6 +1,8 @@
 #ifndef _BINARY_SEARCH_TREE_H
 #define _BINARY_SEARCH_TREE_H
 #include <iostream>
+#include "Queue.h"
+#include "Stack.h"
 
 
 template <class T>
@@ -199,10 +201,10 @@ bool BinarySearchTree<T>::insert(const T& key)
 				curr = curr->right_;
 			}
 		}
-	}
 
-	delete newNode;
-	return false;
+		delete newNode;
+		return false;
+	}
 }
 
 template <class T>
@@ -226,11 +228,15 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 		else if (delNode->p_->key_ > key)
 		{
 			delNode->p_->left_ = nullptr;
+			delNode = nullptr;
+			delete delNode;
 		}
 
 		else if (delNode->p_->key_ < key)
 		{
 			delNode->p_->right_ = nullptr;
+			delNode = nullptr;
+			delete delNode;
 		}
 	}
 
@@ -240,6 +246,8 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 		{
 			root_ = delNode->right_;
 			delNode->right_->p_ = nullptr;
+			delNode = nullptr;
+			delete delNode;
 		}
 
 		else
@@ -247,14 +255,18 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 			if (delNode->p_->key_ > key)
 			{
 				delNode->p_->left_ = delNode->right_;
+				delNode->right_->p_ = delNode->p_;
+				delNode = nullptr;
+				delete delNode;
 			}
 
 			else
 			{
 				delNode->p_->right_ = delNode->right_;
+				delNode->right_->p_ = delNode->p_;
+				delNode = nullptr;
+				delete delNode;
 			}
-
-			delNode->right_->p_ = delNode->p_;
 		}
 	}
 
@@ -264,6 +276,8 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 		{
 			root_ = delNode->left_;
 			delNode->left_->p_ = nullptr;
+			delNode = nullptr;
+			delete delNode;
 		}
 
 		else
@@ -271,11 +285,17 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 			if (delNode->p_->key_ > key)
 			{
 				delNode->p_->left_ = delNode->left_;
+				delNode->left_->p_ = delNode->p_;
+				delNode = nullptr;
+				delete delNode;
 			}
 
 			else
 			{
 				delNode->p_->right_ = delNode->left_;
+				delNode->left_->p_ = delNode->p_;
+				delNode = nullptr;
+				delete delNode;
 			}
 		}
 	}
@@ -287,16 +307,78 @@ bool BinarySearchTree<T>::deleteKey(const T& key)
 		{
 			rightMinNode = rightMinNode->left_;
 		}
-		delNode->key_ = rightMinNode->key_;
-		
-		if (rightMinNode->p_ != delNode)
+
+		if (rightMinNode->right_ == nullptr)
 		{
-			rightMinNode->p_->left_ = nullptr;
+			delNode->key_ = rightMinNode->key_;
+
+			if (rightMinNode->p_ != delNode)
+			{
+				rightMinNode->p_->left_ = nullptr;
+			}
+			else
+			{
+				delNode->right_ = nullptr;
+			}
 		}
-		else
+
+		if (rightMinNode->right_ != nullptr)
 		{
-			delNode->right_ = nullptr;
+			delNode->key_ = rightMinNode->key_;
+
+			if (rightMinNode->p_ != delNode)
+			{
+				rightMinNode->p_->left_ = nullptr;
+				delete rightMinNode;
+			}
+			else
+			{
+				delNode->right_ = rightMinNode->right_;
+				rightMinNode->right_->p_ = delNode;
+				rightMinNode = nullptr;
+				delete rightMinNode;
+			}
 		}
+	}
+}
+
+template <class T>
+void BinarySearchTree<T>::print(std::ostream& out) const
+{
+	printNode(out, root_);
+}
+
+template <class T>
+void BinarySearchTree<T>::printNode(std::ostream& out, Node<T>* root) const
+{
+	if (root == nullptr) 
+	{
+		out << std::endl;
+		return;
+	}
+
+	out << root->key_;
+
+	if (root->left_ == nullptr && root->right_ == nullptr) 
+	{ 
+		return; 
+	}
+
+	else 
+	{
+		out << '(';
+		if (root->left_ != nullptr)
+		{ 
+			printNode(out, root->left_); 
+		}
+		out << ')';
+
+		out << '(';
+		if (root->right_ != nullptr)
+		{ 
+			printNode(out, root->right_);
+		}
+		out << ')';
 	}
 }
 
@@ -314,6 +396,199 @@ template <class T>
 int BinarySearchTree<T>::getCount() const
 {
 	return getCount(this->root_);
+}
+
+template <class T>
+int BinarySearchTree<T>::getHeight() const
+{
+	return getHeight(root_);
+}
+
+template <class T>
+int BinarySearchTree<T>::getHeight(const Node<T>* node) const
+{
+	if (node == nullptr)
+	{
+		return 0;
+	}
+	
+	return std::max(getHeight(node->left_), getHeight(node->right_)) + 1;
+}
+
+template <class T>
+void BinarySearchTree<T>::iterativeInorderWalk() const
+{
+	if (root_ != nullptr) 
+	{
+		StackArray<Node<T>*> stack(getCount());
+
+		Node<T>* curr = root_;
+		stack.push(curr);
+
+		bool flag = true;
+
+		while (!stack.isEmpty()) 
+		{
+			if (flag) 
+			{
+				while (curr->left_ != nullptr) 
+				{
+					stack.push(curr);
+					curr = curr->left_;
+				}
+			}
+
+			std::cout << curr->key_ << ' ';
+
+			if (curr->right_ != nullptr) 
+			{
+				curr = curr->right_;
+				flag = true;
+			}
+
+			else 
+			{
+				curr = stack.pop();
+				flag = false;
+			}
+		}
+		stack.~StackArray();
+	}
+}
+
+template <class T>
+void BinarySearchTree<T>::inorderWalk() const
+{
+	inorderWalk(root_);
+}
+
+template <class T>
+void BinarySearchTree<T>::inorderWalk(Node<T>* node) const {
+	if (node) 
+	{
+		inorderWalk(node->left_);
+		std::cout << node->key_ << ' ';
+		inorderWalk(node->right_);
+	}
+	return;
+}
+
+template <class T>
+void BinarySearchTree<T>::walkByLevels() const
+{
+	if (root_ == nullptr) 
+	{ 
+		return; 
+	}
+
+	QueueArray<Node<T>*> queue(getCount());
+	queue.enQueue(root_);
+
+	Node<T>* current = nullptr;
+
+	while (queue.isEmpty() == false)
+	{
+		current = queue.deQueue();
+		std::cout << current->key_ << ' ';
+
+		if (current->left_ != nullptr) 
+		{ 
+			queue.enQueue(current->left_);
+		}
+
+		if (current->right_ != nullptr) 
+		{ 
+			queue.enQueue(current->right_); 
+		}
+	}
+	queue.~QueueArray();
+}
+
+template <class T>
+bool BinarySearchTree<T>::isSimilar(const BinarySearchTree<T>& other) const
+{
+	if (root_ == nullptr && other.root_ == nullptr)
+	{
+		return true;
+	}
+
+	else if (getCount() == other.getCount())
+	{
+		QueueArray<Node<T>*> queue(getCount());
+		queue.enQueue(root_);
+
+		Node<T>* current = nullptr;
+
+		while (queue.isEmpty() == false)
+		{
+			current = queue.deQueue();
+			if (iterativeSearch(current->key_) == false)
+			{
+				queue.~QueueArray();
+				return false;
+			}
+
+			if (current->left_ != nullptr)
+			{
+				queue.enQueue(current->left_);
+			}
+
+			if (current->right_ != nullptr)
+			{
+				queue.enQueue(current->right_);
+			}
+		}
+
+		queue.~QueueArray();
+		return true;
+	}
+
+	else
+	{
+		return false;
+	}
+}
+
+template <class T>
+bool BinarySearchTree<T>::isIdenticalKey(const BinarySearchTree<T>& other) const
+{
+	if (root_ == nullptr || other.root_ == nullptr)
+	{
+		return false;
+	}
+
+	else
+	{
+		QueueArray<Node<T>*> queue(getCount());
+		queue.enQueue(root_);
+
+		Node<T>* current = nullptr;
+
+		while (queue.isEmpty() == false)
+		{
+			current = queue.deQueue();
+			if (iterativeSearch(current->key_) == true)
+			{
+				queue.~QueueArray();
+				return true;
+			}
+			else
+			{
+				if (current->left_ != nullptr)
+				{
+					queue.enQueue(current->left_);
+				}
+
+				if (current->right_ != nullptr)
+				{
+					queue.enQueue(current->right_);
+				}
+			}
+		}
+		queue.~QueueArray();
+	}
+
+	return false;
 }
 
 #endif _BINARY_SEARCH_TREE_H
